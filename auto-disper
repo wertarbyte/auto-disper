@@ -39,6 +39,7 @@
 # or other applications about it.
 
 DISPER=/usr/bin/disper
+XRANDR=/usr/bin/xrandr
 PROFILES=~/.auto-disper/
 
 CHANGE_PROFILE=0
@@ -57,6 +58,12 @@ load() {
     if [ "$CHANGE_PROFILE" -eq 1 ]; then
         echo " -> loading profile $PROFILE"
         $DISPER -i < "$PROFILES/$PROFILE/config"
+        #hack to add auto-rotate support (manual config):
+        if [ -f "$PROFILES/$PROFILE/xrandr-orientation" ]; then
+	    $XRANDR --orientation $(cat "$PROFILES/$PROFILE/xrandr-orientation")
+	else
+	    $XRANDR --orientation normal
+	fi
 
         [ -x "$PROFILES/$PROFILE/postswitch" ] && \
             "$PROFILES/$PROFILE/postswitch" "$PROFILE"
@@ -88,6 +95,8 @@ if [ -n "$SAVE_PROFILE" ]; then
     mkdir -p "$PROFILES/$SAVE_PROFILE"
     echo "$CURRENT_SETUP" > "$PROFILES/$SAVE_PROFILE/setup"
     $DISPER -p > "$PROFILES/$SAVE_PROFILE/config"
+    #Note: not really sure if we should search for "default", and this has no multi-display support:
+    $XRANDR -q | grep default | cut -d ' ' -f 4 > "$PROFILES/$SAVE_PROFILE/xrandr-orientation"
     exit 0
 fi
 
