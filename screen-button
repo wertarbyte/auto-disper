@@ -1,0 +1,17 @@
+#!/bin/sh
+# An example script which can be run when a "screen button" (e.g. Fn+F7 on
+# Thinkpads) is pressed to toggle between laptop screen and an external/extended/
+# cloned screen. This script detects whether the laptop screen is active (using
+# the resolution - make sure this is correct), and switches either to a profile
+# called "laptop" or auto-disper's automatic profile. (A profile must be created
+# for "laptop" and each external display used by running
+#   ./auto-disper --save NAME
+# ).
+PATH=~/sh
+
+if [ "$(xrandr|grep Screen|cut -d " " -f 8-10)x" = "1440 x 900,x" ]
+then
+    $PATH/auto-disper --change
+else
+    $PATH/auto-disper --load laptop
+fi
