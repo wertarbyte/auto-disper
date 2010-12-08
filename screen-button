@@ -7,11 +7,13 @@
 # for "laptop" and each external display used by running
 #   ./auto-disper --save NAME
 # ).
-PATH=~/sh
+
+# Path where auto-disper can be found:
+AD_PATH=~/sh
 
 if [ "$(xrandr|grep Screen|cut -d " " -f 8-10)x" = "1440 x 900,x" ]
 then
-    $PATH/auto-disper --change
+    $AD_PATH/auto-disper --change
 else
-    $PATH/auto-disper --load laptop
+    $AD_PATH/auto-disper --load laptop
 fi
