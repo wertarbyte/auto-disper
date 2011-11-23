@@ -22,6 +22,11 @@
 #
 # To automatically reload your setup, just append --change to the command line
 #
+# To alternate between the detected setup and a default one (such as your laptop
+# screen, set DEFAULT_PROFILE below appropriately and use the --toggle command
+# line option. This is useful to bind to a keyboard shortcut (via your desktop's
+# global shortcuts bindings or similar).
+#
 # To manually load a profile, you can use the --load <profile> option.
 #
 # To prevent a profile from being loaded, place a script call "block" in its
