@@ -42,8 +42,9 @@ DISPER=/usr/bin/disper
 XRANDR=/usr/bin/xrandr
 PROFILES=~/.auto-disper/
 
+# 0: no change, 1: switch to detected, 2: toggle between detected and default
 CHANGE_PROFILE=0
-DEFAULT_PROFILE=""
+DEFAULT_PROFILE="laptop"
 SAVE_PROFILE=""
 
 blocked() {
@@ -55,7 +56,7 @@ blocked() {
 
 load() {
     local PROFILE="$1"
-    if [ "$CHANGE_PROFILE" -eq 1 ]; then
+    if [ "$CHANGE_PROFILE" -ge 1 ]; then
         echo " -> loading profile $PROFILE"
         $DISPER -i < "$PROFILES/$PROFILE/config"
         #hack to add auto-rotate support (manual config):
@@ -73,7 +74,7 @@ load() {
 }
 
 # process parameters
-OPTS=$(getopt -n auto-disper -o s:l:d:c --long change,default:,save:,load: -- "$@")
+OPTS=$(getopt -n auto-disper -o s:l:d:cth --long toggle,change,default:,save:,load:,help -- "$@")
 if [ $? != 0 ] ; then echo "Terminating..." >&2 ; exit 1 ; fi
 eval set -- "$OPTS"
 
@@ -83,10 +84,24 @@ while true; do
         -d|--default) DEFAULT_PROFILE="$2"; shift 2 ;;
         -s|--save) SAVE_PROFILE="$2"; shift 2 ;;
         -l|--load) LOAD_PROFILE="$2"; shift 2 ;;
+        -t|--toggle) CHANGE_PROFILE=2; shift ;;
+        -h|--help) PRINT_HELP=1; shift ;;
         --) shift; break ;;
         *) echo "Error: $1"; exit 1;;
     esac
 done
+
+if [ -n "$PRINT_HELP" ]; then
+    echo "auto-disper. Options:"
+    echo "    -c --change		Switch to auto-detected profile"
+    echo "    -d --default	Switch to default profile"
+    echo "    -s --save NAME	Save current configuration as profile NAME."
+    echo "    -l --load NAME	Load profile NAME."
+    echo "    -t --toggle		If the default profile is not current, switch to it."
+    echo "\t\t\tOtherwise, switch to auto-detected profile."
+    echo "    -h --help		Print this message."
+    exit 0
+fi
 
 CURRENT_SETUP="$($DISPER -l | grep '^display ')"
 
@@ -96,7 +111,10 @@ if [ -n "$SAVE_PROFILE" ]; then
     echo "$CURRENT_SETUP" > "$PROFILES/$SAVE_PROFILE/setup"
     $DISPER -p > "$PROFILES/$SAVE_PROFILE/config"
     #Note: not really sure if we should search for "default", and this has no multi-display support:
-    $XRANDR -q | grep default | cut -d ' ' -f 4 > "$PROFILES/$SAVE_PROFILE/xrandr-orientation"
+    XRANDR_ORIENTATION=$($XRANDR -q | grep default | cut -d ' ' -f4)
+    if [ "$XRANDR_ORIENTATION" != "(normal" ]; then
+        echo $XRANDR_ORIENTATION > "$PROFILES/$SAVE_PROFILE/xrandr-orientation"
+    fi
     exit 0
 fi
 
@@ -120,9 +138,19 @@ for SETUP_FILE in $PROFILES/*/setup; do
     FILE_SETUP="$(cat "$PROFILES/$PROFILE/setup")"
     if [ "$CURRENT_SETUP" = "$FILE_SETUP" ]; then
         echo " (detected)"
-        load "$PROFILE"
-        # found the profile, exit with success
-        exit 0
+        if [ "$CHANGE_PROFILE" -eq 1 ]; then
+            load "$PROFILE"
+            # found the profile, exit with success
+            exit 0
+        elif [ "$CHANGE_PROFILE" -eq 2 ]; then
+            ACTIVE_CONFIG="$($DISPER -p)"
+            FILE_CONFIG="$(cat "$PROFILES/$PROFILE/config")"
+            if [ "$ACTIVE_CONFIG" != "$FILE_CONFIG" ]; then
+                load "$PROFILE"
+                # found the profile, exit with success
+                exit 0
+            fi
+        fi
     else
         echo ""
     fi
